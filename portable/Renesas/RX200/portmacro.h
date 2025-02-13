@@ -1,6 +1,6 @@
 /*
  * FreeRTOS Kernel <DEVELOPMENT BRANCH>
- * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * Copyright (C) 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -30,9 +30,11 @@
 #ifndef PORTMACRO_H
 #define PORTMACRO_H
 
+/* *INDENT-OFF* */
 #ifdef __cplusplus
-extern "C" {
+    extern "C" {
 #endif
+/* *INDENT-ON* */
 
 /* Hardware specifics. */
 #include "machine.h"
@@ -110,7 +112,7 @@ functions are those that end in FromISR.  FreeRTOS maintains a separate
 interrupt API to ensure API function and interrupt entry is as fast and as
 simple as possible. */
 #define portENABLE_INTERRUPTS()     set_ipl( ( long ) 0 )
-#ifdef configASSERT
+#if ( configASSERT_DEFINED == 1 )
     #define portASSERT_IF_INTERRUPT_PRIORITY_INVALID() configASSERT( ( get_ipl() <= configMAX_SYSCALL_INTERRUPT_PRIORITY ) )
     #define portDISABLE_INTERRUPTS()    if( get_ipl() < configMAX_SYSCALL_INTERRUPT_PRIORITY ) set_ipl( ( long ) configMAX_SYSCALL_INTERRUPT_PRIORITY )
 #else
@@ -136,8 +138,16 @@ extern void vTaskExitCritical( void );
 #define portTASK_FUNCTION_PROTO( vFunction, pvParameters ) void vFunction( void *pvParameters )
 #define portTASK_FUNCTION( vFunction, pvParameters ) void vFunction( void *pvParameters )
 
-#ifdef __cplusplus
+#pragma inline_asm vPortMemoryBarrier
+static void vPortMemoryBarrier( void )
+{
 }
+
+#define portMEMORY_BARRIER()    vPortMemoryBarrier()
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
 #endif
+/* *INDENT-ON* */
 
 #endif /* PORTMACRO_H */

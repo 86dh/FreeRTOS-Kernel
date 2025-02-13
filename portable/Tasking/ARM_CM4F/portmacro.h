@@ -1,6 +1,6 @@
 /*
  * FreeRTOS Kernel <DEVELOPMENT BRANCH>
- * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * Copyright (C) 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -30,9 +30,11 @@
 #ifndef PORTMACRO_H
     #define PORTMACRO_H
 
-    #ifdef __cplusplus
-        extern "C" {
-    #endif
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
 
 /*-----------------------------------------------------------
  * Port specific definitions.
@@ -81,13 +83,25 @@
 
 
 /* Scheduler utilities. */
-    extern void vPortYield( void );
-    #define portNVIC_INT_CTRL     ( ( volatile uint32_t * ) 0xe000ed04 )
-    #define portNVIC_PENDSVSET    0x10000000
-    #define portYIELD()                                 vPortYield()
+extern void vPortYield( void );
+#define portNVIC_INT_CTRL     ( ( volatile uint32_t * ) 0xe000ed04 )
+#define portNVIC_PENDSVSET    0x10000000
+#define portYIELD()                vPortYield()
 
-    #define portEND_SWITCHING_ISR( xSwitchRequired )    if( xSwitchRequired ) *( portNVIC_INT_CTRL ) = portNVIC_PENDSVSET
-    #define portYIELD_FROM_ISR( x )                     portEND_SWITCHING_ISR( x )
+#define portEND_SWITCHING_ISR( xSwitchRequired )         \
+    do                                                   \
+    {                                                    \
+        if( xSwitchRequired != pdFALSE )                 \
+        {                                                \
+            traceISR_EXIT_TO_SCHEDULER();                \
+            *( portNVIC_INT_CTRL ) = portNVIC_PENDSVSET; \
+        }                                                \
+        else                                             \
+        {                                                \
+            traceISR_EXIT();                             \
+        }                                                \
+    } while( 0 )
+#define portYIELD_FROM_ISR( x )    portEND_SWITCHING_ISR( x )
 /*-----------------------------------------------------------*/
 
 
@@ -128,8 +142,10 @@
 
     #define portNOP()
 
-    #ifdef __cplusplus
-        }
-    #endif
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* PORTMACRO_H */

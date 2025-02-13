@@ -1,6 +1,6 @@
 /*
  * FreeRTOS Kernel <DEVELOPMENT BRANCH>
- * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * Copyright (C) 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -45,7 +45,10 @@
     .extern vTaskSwitchContext
     .extern vApplicationIRQHandler
     .extern ulPortInterruptNesting
+
+#if defined( __ARM_FP )
     .extern ulPortTaskHasFPUContext
+#endif /* __ARM_FP */
 
     .global FreeRTOS_IRQ_Handler
     .global FreeRTOS_SWI_Handler
@@ -64,20 +67,21 @@
     LDR     R1, [R2]
     PUSH    {R1}
 
-    /* Does the task have a floating point context that needs saving?  If
-    ulPortTaskHasFPUContext is 0 then no. */
-    LDR     R2, ulPortTaskHasFPUContextConst
-    LDR     R3, [R2]
-    CMP     R3, #0
+    #if defined( __ARM_FP )
+        /* Does the task have a floating point context that needs saving?  If
+        ulPortTaskHasFPUContext is 0 then no. */
+        LDR     R2, ulPortTaskHasFPUContextConst
+        LDR     R3, [R2]
+        CMP     R3, #0
 
-    /* Save the floating point context, if any. */
-    FMRXNE  R1,  FPSCR
-    VPUSHNE {D0-D15}
-    /*VPUSHNE   {D16-D31}*/
-    PUSHNE  {R1}
+        /* Save the floating point context, if any. */
+        FMRXNE  R1,  FPSCR
+        PUSHNE  {R1}
+        VPUSHNE {D0-D15}
 
-    /* Save ulPortTaskHasFPUContext itself. */
-    PUSH    {R3}
+        /* Save ulPortTaskHasFPUContext itself. */
+        PUSH    {R3}
+    #endif /* __ARM_FP */
 
     /* Save the stack pointer in the TCB. */
     LDR     R0, pxCurrentTCBConst
@@ -95,18 +99,21 @@
     LDR     R1, [R0]
     LDR     SP, [R1]
 
-    /* Is there a floating point context to restore?  If the restored
-    ulPortTaskHasFPUContext is zero then no. */
-    LDR     R0, ulPortTaskHasFPUContextConst
-    POP     {R1}
-    STR     R1, [R0]
-    CMP     R1, #0
+    #if defined( __ARM_FP )
+        /*
+         * Is there a floating point context to restore?  If the restored
+         * ulPortTaskHasFPUContext is zero then no.
+         */
+        LDR     R0, ulPortTaskHasFPUContextConst
+        POP     {R1}
+        STR     R1, [R0]
+        CMP     R1, #0
 
-    /* Restore the floating point context, if any. */
-    POPNE   {R0}
-    /*VPOPNE    {D16-D31}*/
-    VPOPNE  {D0-D15}
-    VMSRNE  FPSCR, R0
+        /* Restore the floating point context, if any. */
+        VPOPNE  {D0-D15}
+        POPNE   {R0}
+        VMSRNE  FPSCR, R0
+    #endif /* __ARM_FP */
 
     /* Restore the critical section nesting depth. */
     LDR     R0, ulCriticalNestingConst
@@ -132,8 +139,6 @@
     .endm
 
 
-
-
 /******************************************************************************
  * SVC handler is used to start the scheduler.
  *****************************************************************************/
@@ -142,8 +147,15 @@
 FreeRTOS_SWI_Handler:
     /* Save the context of the current task and select a new task to run. */
     portSAVE_CONTEXT
+
+    /* Ensure bit 2 of the stack pointer is clear. */
+    MOV     r2, sp
+    AND     r2, r2, #4
+    SUB     sp, sp, r2
+
     LDR R0, vTaskSwitchContextConst
     BLX R0
+
     portRESTORE_CONTEXT
 
 
@@ -237,7 +249,7 @@ exit_without_switch:
     MOVS    PC, LR
 
 switch_before_exit:
-    /* A context swtich is to be performed.  Clear the context switch pending
+    /* A context switch is to be performed.  Clear the context switch pending
     flag. */
     MOV     r0, #0
     STR     r0, [r1]
@@ -250,6 +262,11 @@ switch_before_exit:
     MSR     SPSR_cxsf, LR
     POP     {LR}
     portSAVE_CONTEXT
+
+    /* Ensure bit 2 of the stack pointer is clear. */
+    MOV     r2, sp
+    AND     r2, r2, #4
+    SUB     sp, sp, r2
 
     /* Call the function that selects the new task to execute.
     vTaskSwitchContext() if vTaskSwitchContext() uses LDRD or STRD
@@ -279,22 +296,25 @@ switch_before_exit:
  * FPU registers to be saved on interrupt entry their IRQ handler must be
  * called vApplicationIRQHandler().
  *****************************************************************************/
-
 .align 4
 .weak vApplicationIRQHandler
 .type vApplicationIRQHandler, %function
 vApplicationIRQHandler:
+
     PUSH    {LR}
-    FMRX    R1,  FPSCR
-    VPUSH   {D0-D15}
-    PUSH    {R1}
 
-    LDR     r1, vApplicationFPUSafeIRQHandlerConst
-    BLX     r1
+    #if defined( __ARM_FP )
+        FMRX    R1,  FPSCR
+        VPUSH   {D0-D15}
+        PUSH    {R1}
 
-    POP     {R0}
-    VPOP    {D0-D15}
-    VMSR    FPSCR, R0
+        LDR     r1, vApplicationFPUSafeIRQHandlerConst
+        BLX     r1
+
+        POP     {R0}
+        VPOP    {D0-D15}
+        VMSR    FPSCR, R0
+    #endif /* __ARM_FP */
 
     POP {PC}
 
@@ -303,11 +323,15 @@ ulICCEOIRConst: .word ulICCEOIR
 ulICCPMRConst: .word ulICCPMR
 pxCurrentTCBConst: .word pxCurrentTCB
 ulCriticalNestingConst: .word ulCriticalNesting
-ulPortTaskHasFPUContextConst: .word ulPortTaskHasFPUContext
+
+#if defined( __ARM_FP )
+    ulPortTaskHasFPUContextConst: .word ulPortTaskHasFPUContext
+    vApplicationFPUSafeIRQHandlerConst: .word vApplicationFPUSafeIRQHandler
+#endif /* __ARM_FP */
+
 ulMaxAPIPriorityMaskConst: .word ulMaxAPIPriorityMask
 vTaskSwitchContextConst: .word vTaskSwitchContext
 vApplicationIRQHandlerConst: .word vApplicationIRQHandler
 ulPortInterruptNestingConst: .word ulPortInterruptNesting
-vApplicationFPUSafeIRQHandlerConst: .word vApplicationFPUSafeIRQHandler
 
 .end

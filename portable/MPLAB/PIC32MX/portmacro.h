@@ -1,6 +1,6 @@
 /*
  * FreeRTOS Kernel <DEVELOPMENT BRANCH>
- * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * Copyright (C) 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -32,9 +32,11 @@
 /* System include files */
 #include <xc.h>
 
+/* *INDENT-OFF* */
 #ifdef __cplusplus
-extern "C" {
+    extern "C" {
 #endif
+/* *INDENT-ON* */
 
 /*-----------------------------------------------------------
  * Port specific definitions.
@@ -93,7 +95,7 @@ value was found to be above configMAX_SYSCALL_INTERRUPT_PRIORITY when an ISR
 safe FreeRTOS API function was executed.  ISR safe FreeRTOS API functions are
 those that end in FromISR.  FreeRTOS maintains a separate interrupt API to
 ensure API function and interrupt entry is as fast and as simple as possible. */
-#ifdef configASSERT
+#if ( configASSERT_DEFINED == 1 )
     #define portDISABLE_INTERRUPTS()                                            \
     {                                                                           \
     uint32_t ulStatus;                                                      \
@@ -189,15 +191,29 @@ extern volatile UBaseType_t uxInterruptNesting;
 #define portTASK_FUNCTION( vFunction, pvParameters ) void vFunction( void *pvParameters )
 /*-----------------------------------------------------------*/
 
-#define portEND_SWITCHING_ISR( xSwitchRequired )    do { if( xSwitchRequired ) { portYIELD(); } } while( 0 )
+#define portEND_SWITCHING_ISR( xSwitchRequired ) \
+    do                                           \
+    {                                            \
+        if( xSwitchRequired != pdFALSE )         \
+        {                                        \
+            traceISR_EXIT_TO_SCHEDULER();        \
+            portYIELD();                         \
+        }                                        \
+        else                                     \
+        {                                        \
+            traceISR_EXIT();                     \
+        }                                        \
+    } while( 0 )
 
 /* Required by the kernel aware debugger. */
 #ifdef __DEBUG
     #define portREMOVE_STATIC_QUALIFIER
 #endif
 
+/* *INDENT-OFF* */
 #ifdef __cplusplus
-}
+    }
 #endif
+/* *INDENT-ON* */
 
 #endif /* PORTMACRO_H */

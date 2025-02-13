@@ -1,6 +1,6 @@
 /*
  * FreeRTOS Kernel <DEVELOPMENT BRANCH>
- * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * Copyright (C) 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -30,9 +30,11 @@
 #ifndef PORTMACRO_H
     #define PORTMACRO_H
 
-    #ifdef __cplusplus
-        extern "C" {
-    #endif
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
 
 /*-----------------------------------------------------------
  * Port specific definitions.
@@ -93,10 +95,22 @@
         __asm( "    isb");                                \
     }
 
-    #define portNVIC_INT_CTRL_REG     ( *( ( volatile uint32_t * ) 0xe000ed04 ) )
-    #define portNVIC_PENDSVSET_BIT    ( 1UL << 28UL )
-    #define portEND_SWITCHING_ISR( xSwitchRequired )    do { if( xSwitchRequired != pdFALSE ) portYIELD(); } while( 0 )
-    #define portYIELD_FROM_ISR( x )                     portEND_SWITCHING_ISR( x )
+#define portNVIC_INT_CTRL_REG     ( *( ( volatile uint32_t * ) 0xe000ed04 ) )
+#define portNVIC_PENDSVSET_BIT    ( 1UL << 28UL )
+#define portEND_SWITCHING_ISR( xSwitchRequired ) \
+    do                                           \
+    {                                            \
+        if( xSwitchRequired != pdFALSE )         \
+        {                                        \
+            traceISR_EXIT_TO_SCHEDULER();        \
+            portYIELD();                         \
+        }                                        \
+        else                                     \
+        {                                        \
+            traceISR_EXIT();                     \
+        }                                        \
+    } while( 0 )
+#define portYIELD_FROM_ISR( x )    portEND_SWITCHING_ISR( x )
 
 /*-----------------------------------------------------------*/
 
@@ -130,8 +144,8 @@
     #define portDISABLE_INTERRUPTS()                                     \
     {                                                                    \
         _set_interrupt_priority( configMAX_SYSCALL_INTERRUPT_PRIORITY ); \
-        __asm( "    dsb");                                                 \
-        __asm( "    isb");                                                 \
+        __asm( "    dsb");                                               \
+        __asm( "    isb");                                               \
     }
 
     #define portENABLE_INTERRUPTS()                   _set_interrupt_priority( 0 )
@@ -156,7 +170,7 @@
     #define portTASK_FUNCTION( vFunction, pvParameters )          void vFunction( void * pvParameters )
 /*-----------------------------------------------------------*/
 
-    #ifdef configASSERT
+    #if ( configASSERT_DEFINED == 1 )
         void vPortValidateInterruptPriority( void );
         #define portASSERT_IF_INTERRUPT_PRIORITY_INVALID()    vPortValidateInterruptPriority()
     #endif
@@ -166,8 +180,10 @@
 
 /*-----------------------------------------------------------*/
 
-    #ifdef __cplusplus
-        }
-    #endif
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* PORTMACRO_H */

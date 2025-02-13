@@ -1,6 +1,6 @@
 /*
  * FreeRTOS Kernel <DEVELOPMENT BRANCH>
- * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * Copyright (C) 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -30,9 +30,11 @@
 #ifndef PORTMACRO_H
     #define PORTMACRO_H
 
-    #ifdef __cplusplus
-        extern "C" {
-    #endif
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    extern "C" {
+#endif
+/* *INDENT-ON* */
 
 /* Hardware specifics. */
     #include <machine.h>
@@ -136,7 +138,7 @@
  * interrupt API to ensure API function and interrupt entry is as fast and as
  * simple as possible. */
     #define portENABLE_INTERRUPTS()                           set_ipl( ( long ) 0 )
-    #ifdef configASSERT
+    #if ( configASSERT_DEFINED == 1 )
         #define portASSERT_IF_INTERRUPT_PRIORITY_INVALID()    configASSERT( ( get_ipl() <= configMAX_SYSCALL_INTERRUPT_PRIORITY ) )
         #define portDISABLE_INTERRUPTS()                      if( get_ipl() < configMAX_SYSCALL_INTERRUPT_PRIORITY ) set_ipl( ( long ) configMAX_SYSCALL_INTERRUPT_PRIORITY )
     #else
@@ -181,8 +183,17 @@
 /* Definition to allow compatibility with existing FreeRTOS Demo using flop.c. */
     #define portTASK_USES_FLOATING_POINT() vPortTaskUsesDPFPU()
 
-    #ifdef __cplusplus
-        }
-    #endif
+#pragma inline_asm vPortMemoryBarrier
+static void vPortMemoryBarrier( void )
+{
+}
+
+#define portMEMORY_BARRIER()    vPortMemoryBarrier()
+
+/* *INDENT-OFF* */
+#ifdef __cplusplus
+    }
+#endif
+/* *INDENT-ON* */
 
 #endif /* PORTMACRO_H */

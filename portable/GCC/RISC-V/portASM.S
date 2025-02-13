@@ -1,6 +1,6 @@
 /*
  * FreeRTOS Kernel <DEVELOPMENT BRANCH>
- * Copyright (C) 2021 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+ * Copyright (C) 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -32,7 +32,7 @@
  * RISC-V ISA), and code which tailors the port to a specific RISC-V chip:
  *
  * + The code that is common to all RISC-V chips is implemented in
- *   FreeRTOS\Source\portable\GCC\RISC-V-RV32\portASM.S.  There is only one
+ *   FreeRTOS\Source\portable\GCC\RISC-V\portASM.S.  There is only one
  *   portASM.S file because the same file is used no matter which RISC-V chip is
  *   in use.
  *
@@ -138,7 +138,7 @@ definitions. */
  * for the function is as per the other ports:
  * StackType_t *pxPortInitialiseStack( StackType_t *pxTopOfStack, TaskFunction_t pxCode, void *pvParameters );
  *
- * As per the standard RISC-V ABI pxTopcOfStack is passed in in a0, pxCode in
+ * As per the standard RISC-V ABI pxTopOfStack is passed in in a0, pxCode in
  * a1, and pvParameters in a2.  The new top of stack is passed out in a0.
  *
  * RISC-V maps registers to ABI names as follows (X1 to X31 integer registers
@@ -158,7 +158,7 @@ definitions. */
  * x18-27        s2-11       Saved registers                   Callee
  * x28-31        t3-6        Temporaries                       Caller
  *
- * The RISC-V context is saved t FreeRTOS tasks in the following stack frame,
+ * The RISC-V context is saved to FreeRTOS tasks in the following stack frame,
  * where the global and thread pointers are currently assumed to be constant so
  * are not saved:
  *
